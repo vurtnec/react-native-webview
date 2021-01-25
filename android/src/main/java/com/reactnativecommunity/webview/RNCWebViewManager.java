@@ -17,6 +17,7 @@ import android.os.Environment;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -139,6 +140,8 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
   protected boolean mAllowsFullscreenVideo = false;
   protected @Nullable String mUserAgent = null;
   protected @Nullable String mUserAgentWithApplicationName = null;
+
+  private @Nullable HashMap<String, String> headerMap = null;
 
   public RNCWebViewManager() {
     mWebViewConfig = new WebViewConfig() {
@@ -486,17 +489,28 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
         if (source.hasKey("headers")) {
           ReadableMap headers = source.getMap("headers");
           ReadableMapKeySetIterator iter = headers.keySetIterator();
+          //this.sourceHeader = headers.getString("headers");
           while (iter.hasNextKey()) {
             String key = iter.nextKey();
             if ("user-agent".equals(key.toLowerCase(Locale.ENGLISH))) {
               if (view.getSettings() != null) {
                 view.getSettings().setUserAgentString(headers.getString(key));
+//                Log.d("sourceHeader",headers.getString(key));//Debug
               }
             } else {
               headerMap.put(key, headers.getString(key));
+//              Log.d("sourceHeader",headers.getString(key));//Debug
             }
           }
         }
+
+        /*
+         * save header for Redirect
+         * */
+        if(this.headerMap == null){
+          this.headerMap = headerMap;
+        }
+
         view.loadUrl(url, headerMap);
         return;
       }
@@ -598,6 +612,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
 
   @Override
   public void receiveCommand(WebView root, int commandId, @Nullable ReadableArray args) {
+//    Log.d("receiveCommand","mount");
     switch (commandId) {
       case COMMAND_GO_BACK:
         root.goBack();
@@ -640,7 +655,16 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
           throw new RuntimeException("Arguments for loading an url are null!");
         }
         ((RNCWebView) root).progressChangedFilter.setWaitingForCommandLoadUrl(false);
-        root.loadUrl(args.getString(0));
+
+        /*
+         *   add header in redirect load
+         * */
+        if(this.headerMap == null){
+          root.loadUrl(args.getString(0));
+        }else {
+          root.loadUrl(args.getString(0), this.headerMap);
+        }
+
         break;
       case COMMAND_FOCUS:
         root.requestFocus();
@@ -771,7 +795,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
       mLastLoadFailed = false;
 
       RNCWebView reactWebView = (RNCWebView) webView;
-      reactWebView.callInjectedJavaScriptBeforeContentLoaded();       
+      reactWebView.callInjectedJavaScriptBeforeContentLoaded();
 
       dispatchEvent(
         webView,
@@ -828,11 +852,11 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
           case SslError.SSL_UNTRUSTED:
             description = "The certificate authority is not trusted";
             break;
-          default: 
+          default:
             description = "Unknown SSL Error";
             break;
         }
-        
+
         description = descriptionPrefix + description;
 
         this.onReceivedError(
@@ -842,7 +866,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
           failingUrl
         );
     }
-    
+
     @Override
     public void onReceivedError(
       WebView webView,

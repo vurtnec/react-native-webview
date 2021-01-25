@@ -7,6 +7,9 @@
 [![NPM Version](https://img.shields.io/npm/v/react-native-webview.svg?style=flat-square)](https://www.npmjs.com/package/react-native-webview)
 [![Lean Core Extracted](https://img.shields.io/badge/Lean%20Core-Extracted-brightgreen.svg?style=flat-square)][lean-core-issue]
 
+**Fork from https://github.com/react-native-webview/react-native-webview and version 10.3.3, and fix an Android issue when redirect URL lost custom header**
+More details please refer to RNCWebViewManager.java
+
 **React Native WebView** is a modern, well-supported, and cross-platform WebView for React Native. It is intended to be a replacement for the built-in WebView (which will be [removed from core](https://github.com/react-native-community/discussions-and-proposals/pull/3)).
 
 ## Core Maintainers - Sponsoring companies

@@ -70,6 +70,7 @@ import com.reactnativecommunity.webview.events.TopLoadingProgressEvent;
 import com.reactnativecommunity.webview.events.TopLoadingStartEvent;
 import com.reactnativecommunity.webview.events.TopMessageEvent;
 import com.reactnativecommunity.webview.events.TopShouldStartLoadWithRequestEvent;
+import com.reactnativecommunity.webview.events.FGTopShouldStartLoadWithRequestEvent;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -586,7 +587,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
       export = MapBuilder.newHashMap();
     }
     export.put(TopLoadingProgressEvent.EVENT_NAME, MapBuilder.of("registrationName", "onLoadingProgress"));
-    export.put(TopShouldStartLoadWithRequestEvent.EVENT_NAME, MapBuilder.of("registrationName", "onShouldStartLoadWithRequest"));
+    export.put(FGTopShouldStartLoadWithRequestEvent.EVENT_NAME, MapBuilder.of("registrationName", "onShouldStartLoadWithRequest"));
     export.put(ScrollEventType.getJSEventName(ScrollEventType.SCROLL), MapBuilder.of("registrationName", "onScroll"));
     export.put(TopHttpErrorEvent.EVENT_NAME, MapBuilder.of("registrationName", "onHttpError"));
     return export;
@@ -793,7 +794,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
     public void onPageStarted(WebView webView, String url, Bitmap favicon) {
       super.onPageStarted(webView, url, favicon);
       mLastLoadFailed = false;
-
+      Log.d("Override onPageStarted", url);
       RNCWebView reactWebView = (RNCWebView) webView;
       reactWebView.callInjectedJavaScriptBeforeContentLoaded();
 
@@ -807,11 +808,24 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, String url) {
       progressChangedFilter.setWaitingForCommandLoadUrl(true);
+     dispatchEvent(
+       view,
+       new TopShouldStartLoadWithRequestEvent(
+         view.getId(),
+         createWebViewEvent(view, url)));
+      return true;
+    }
+
+    public boolean shouldOverrideUrlLoading(WebView view, String url, Boolean isRedirect) {
+      progressChangedFilter.setWaitingForCommandLoadUrl(true);
+//      Log.d("OverrideUrlLoading view", view.toString());
+//      Log.d("OverrideUrlLoading url", url);
       dispatchEvent(
         view,
-        new TopShouldStartLoadWithRequestEvent(
+        new FGTopShouldStartLoadWithRequestEvent(
           view.getId(),
-          createWebViewEvent(view, url)));
+          createWebViewEvent(view, url),
+          isRedirect));
       return true;
     }
 
@@ -820,7 +834,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
       final String url = request.getUrl().toString();
-      return this.shouldOverrideUrlLoading(view, url);
+      return this.shouldOverrideUrlLoading(view, url, request.isRedirect());
     }
 
     @Override
